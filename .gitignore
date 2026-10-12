@@ -1,0 +1,23 @@
+# Скомпилированные программы
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Результаты тестов и профилирования
+*.test
+*.out
+coverage.html
+
+# Локальные настройки и секреты
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# VS Code (локальные настройки)
+.vscode/
+
+Lectures/
