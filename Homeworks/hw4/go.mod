@@ -1,3 +1,3 @@
-module hw2
+module hw4
 
 go 1.27

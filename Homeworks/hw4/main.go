@@ -3,61 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"hw4/notifiers"
 )
-
-type Notifier interface {
-	Send(message string) error
-}
-
-var ErrBadInput error = errors.New("bad input")
-
-type ErrCustom struct {
-	info string
-	err  error
-}
-
-type EmailNotifier struct{}
-
-type BrokenNotifier struct{}
-
-func (EmailNotifier) Send(message string) error {
-	fmt.Println("email отправлен:", message)
-	return nil
-}
-
-func (BrokenNotifier) Send(string) error {
-	panic("драйвер канала повреждён")
-}
-
-func safeSend(notifier Notifier, message string) (err error) {
-	defer func() {
-		if value := recover(); value != nil {
-			err = fmt.Errorf("паника при отправке: %v", value)
-		}
-	}()
-
-	return notifier.Send(message)
-}
-
-func (e ErrCustom) Error() string {
-	return fmt.Sprintf("info is %v, error is %v", e.info, e.err)
-}
-
-func (e ErrCustom) Unwrap() error {
-	return e.err
-}
-
-func (e ErrCustom) Is(target error) bool {
-	t, ok := target.(*ErrCustom)
-	if !ok {
-		return false
-	}
-	return (e.info == t.info)
-}
-
-func do() error {
-	return ErrCustom{info: "my info", err: ErrBadInput}
-}
 
 func main() {
 	defer func() {
@@ -66,29 +13,31 @@ func main() {
 		}
 	}()
 
-	err := do()
+	errExample := notifiers.NewCustomError("very important info", notifiers.ErrEmptyMessage)
 
-	fmt.Println("ошибка содержит ErrBadInput:", errors.Is(err, ErrBadInput))
+	fmt.Println("ошибка содержит ErrBadInput:", errors.Is(errExample, notifiers.ErrEmptyMessage))
+	fmt.Println("ошибка содержит notifiers.ErrCustom с info \"very important info\":", errors.Is(errExample, notifiers.NewCustomError("very important info", notifiers.ErrEmptyMessage)))
 
-	fmt.Println("ошибка содержит ErrCustom с info \"my info\":", errors.Is(err, &ErrCustom{info: "my info"}))
-
-	multErr := errors.Join(
-		err,
-		errors.New("dsfssf"),
-		errors.New("dsqwewqe"),
-	)
-	fmt.Println(multErr)
-
-	notifiers := []Notifier{
-		EmailNotifier{},
-		BrokenNotifier{},
+	var err_custom *notifiers.ErrCustom
+	if errors.As(errExample, &err_custom) {
+		fmt.Println("ErrCustom найдена:", err_custom)
 	}
 
-	for _, notifier := range notifiers {
-		err := safeSend(notifier, "Заказ готов")
-		fmt.Println("safeSend:", err)
+	unwrappedErr := errors.Unwrap(errExample)
+	fmt.Println("вложенная ошибка - ErrEmptyMessage:", errors.Is(unwrappedErr, notifiers.ErrEmptyMessage))
+
+	notifierList := []notifiers.Notifier{
+		notifiers.EmailNotifier{},
+		notifiers.BrokenNotifier{},
+		nil,
 	}
 
+	dispatcher := notifiers.NewDispatcher(notifierList)
+	err := dispatcher.Send("GO X5")
+	if err != nil {
+		fmt.Println("При отправке произошли ошибки:")
+		fmt.Println(err)
+	}
 	fmt.Println("прямой вызов без safeSend")
-	BrokenNotifier{}.Send("Заказ готов")
+	notifiers.BrokenNotifier{}.Send("Заказ готов")
 }
