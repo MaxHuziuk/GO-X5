@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+var ErrEmptyMessage error = errors.New("empty message")
+var ErrNilNotifier error = errors.New("notifier is nil")
+
 type Notifier interface {
 	Send(message string) error
 }
@@ -12,9 +15,6 @@ type Notifier interface {
 type BaseNotifier struct {
 	Channel string
 }
-
-var ErrEmptyMessage error = errors.New("empty message")
-var ErrNilNotifier error = errors.New("notifier is nil")
 
 type EmailNotifier struct {
 	BaseNotifier
